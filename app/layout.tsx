@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'RunTracker Pro',
-  description: 'Track your running goals and achieve new milestones',
+  title: 'WellRun - Run well, live well',
+  description: 'A modern, intelligent running companion that transforms your fitness journey into measurable progress',
   generator: 'v0.dev',
   viewport: {
     width: 'device-width',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'RunTracker Pro',
+    title: 'WellRun',
   },
   formatDetection: {
     telephone: false,
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-status-bar-style': 'default',
     'theme-color': '#3b82f6',
     'msapplication-navbutton-color': '#3b82f6',
-    'apple-mobile-web-app-title': 'RunTracker Pro',
+    'apple-mobile-web-app-title': 'WellRun',
   },
 }
 
@@ -42,7 +42,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="RunTracker Pro" />
+        <meta name="apple-mobile-web-app-title" content="WellRun" />
         <meta name="theme-color" content="#3b82f6" />
         
         {/* iOS Safari特定优化 */}

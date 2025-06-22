@@ -16,7 +16,7 @@ interface MobileLayoutProps {
 
 export function MobileLayout({
   children,
-  title = "RunTracker Pro",
+  title = "WellRun",
   showBackButton = false,
   onBack,
   className,
@@ -68,7 +68,7 @@ export function MobileLayout({
                 </SheetTrigger>
                 <SheetContent side="left" className="pt-safe w-[80%] max-w-[300px]">
                   <SheetHeader>
-                    <SheetTitle>RunTracker Pro</SheetTitle>
+                    <SheetTitle>WellRun</SheetTitle>
                   </SheetHeader>
                   <MobileNavigation />
                 </SheetContent>

@@ -678,7 +678,7 @@ export default function RunningGoalApp() {
           <MobileLayout
           title={
             activeTab === "dashboard"
-              ? "RunTracker Pro"
+              ? "WellRun"
               : activeTab === "goals"
                 ? "跑步目标"
                 : activeTab === "activities"
@@ -1056,9 +1056,9 @@ export default function RunningGoalApp() {
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-bold text-gray-900 flex items-center justify-center gap-2">
               <ActivityIcon className="h-8 w-8 text-blue-600" />
-              RunTracker Pro
+              WellRun
             </h1>
-            <p className="text-gray-600">Track your running goals and achieve new milestones</p>
+            <p className="text-gray-600">Run well, live well.</p>
           </div>
 
           {/* Stats Overview */}
