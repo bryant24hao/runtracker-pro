@@ -10,18 +10,30 @@ export default function MobileTestPage() {
     setIsClient(true)
     
     if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent || ""
+      const vendor = navigator.vendor || ""
+      const platform = navigator.platform || ""
+      
       const info = {
-        userAgent: navigator.userAgent,
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
+        userAgent: ua,
+        screenWidth: window.screen?.width || 0,
+        screenHeight: window.screen?.height || 0,
         windowWidth: window.innerWidth,
         windowHeight: window.innerHeight,
-        devicePixelRatio: window.devicePixelRatio,
-        platform: navigator.platform,
-        vendor: navigator.vendor,
+        devicePixelRatio: window.devicePixelRatio || 1,
+        platform: platform,
+        vendor: vendor,
         language: navigator.language,
         cookieEnabled: navigator.cookieEnabled,
-        onLine: navigator.onLine
+        onLine: navigator.onLine,
+        maxTouchPoints: navigator.maxTouchPoints || 0,
+        // Safari/iOS特定检测
+        isIOS: /iPad|iPhone|iPod/.test(platform) || /iPad|iPhone|iPod/.test(ua),
+        isIPadMasquerading: platform === 'MacIntel' && navigator.maxTouchPoints > 1,
+        isSafari: /Safari/.test(ua) && !/Chrome/.test(ua),
+        isWebKit: /WebKit/.test(ua),
+        hasTouch: 'ontouchstart' in window,
+        touchPoints: navigator.maxTouchPoints
       }
       setDeviceInfo(info)
     }
@@ -85,15 +97,27 @@ export default function MobileTestPage() {
 
         <div className="bg-white rounded-lg p-4">
           <h2 className="text-lg font-semibold mb-3">移动端特性测试</h2>
-          <div className="space-y-2">
+          <div className="space-y-2 text-sm">
             <div>
-              Touch支持: {typeof window !== 'undefined' && 'ontouchstart' in window ? '✅' : '❌'}
+              Touch支持: {deviceInfo.hasTouch ? '✅' : '❌'} ({deviceInfo.touchPoints} 个触点)
             </div>
             <div>
-              移动端浏览器: {/android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent) ? '✅' : '❌'}
+              iOS设备: {deviceInfo.isIOS ? '✅' : '❌'}
             </div>
             <div>
-              小屏幕: {window.innerWidth < 768 ? '✅' : '❌'}
+              iPad伪装: {deviceInfo.isIPadMasquerading ? '✅' : '❌'}
+            </div>
+            <div>
+              Safari浏览器: {deviceInfo.isSafari ? '✅' : '❌'}
+            </div>
+            <div>
+              WebKit引擎: {deviceInfo.isWebKit ? '✅' : '❌'}
+            </div>
+            <div>
+              小屏幕: {deviceInfo.windowWidth < 768 ? '✅' : '❌'} ({deviceInfo.windowWidth}px)
+            </div>
+            <div>
+              移动端浏览器: {/android|iphone|ipad|ipod|mobile|blackberry|iemobile|opera mini/i.test(deviceInfo.userAgent) ? '✅' : '❌'}
             </div>
           </div>
         </div>

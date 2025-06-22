@@ -133,39 +133,69 @@ export default function RunningGoalApp() {
   const [editingGoal, setEditingGoal] = useState<ClientGoal | null>(null)
   const [isClient, setIsClient] = useState(false)
 
-  // 统一的客户端初始化
+  // Safari兼容的客户端初始化
   useEffect(() => {
-    const initializeApp = () => {
-      setIsClient(true)
-      
-      // 更全面的移动端检测
-      const checkMobile = () => {
-        const userAgent = navigator.userAgent.toLowerCase()
-        const isMobileUserAgent = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
-        const isMobileScreen = window.innerWidth < 768
+    // 立即设置客户端状态，避免Safari延迟问题
+    setIsClient(true)
+    
+    const detectMobile = () => {
+      try {
+        // Safari兼容的移动端检测
+        const ua = navigator.userAgent || ""
+        const vendor = navigator.vendor || ""
+        const platform = navigator.platform || ""
         
-        // 移动端检测：用户代理 OR 屏幕宽度
-        setIsMobile(isMobileUserAgent || isMobileScreen)
+        // 检测iOS设备 (包括Safari的特殊情况)
+        const isIOS = /iPad|iPhone|iPod/.test(platform) || 
+                     /iPad|iPhone|iPod/.test(ua) ||
+                     (platform === 'MacIntel' && navigator.maxTouchPoints > 1) // iPad在Safari中伪装成Mac
+        
+        // 检测Android
+        const isAndroid = /Android/.test(ua)
+        
+        // 检测其他移动设备
+        const isOtherMobile = /Mobile|Opera Mini|webOS|BlackBerry|IEMobile/i.test(ua)
+        
+        // 屏幕尺寸检测 (Safari兼容)
+        const screenWidth = window.screen?.width || window.innerWidth || 0
+        const isSmallScreen = screenWidth < 768
+        
+        // Touch支持检测
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+        
+        const isMobileDevice = isIOS || isAndroid || isOtherMobile || (isSmallScreen && hasTouch)
+        
+        console.log("🔍 Mobile Detection:", {
+          isIOS,
+          isAndroid, 
+          isOtherMobile,
+          isSmallScreen,
+          hasTouch,
+          isMobileDevice,
+          ua: ua.substring(0, 100),
+          platform,
+          vendor,
+          screenWidth
+        })
+        
+        setIsMobile(isMobileDevice)
+      } catch (error) {
+        console.error("Error in mobile detection:", error)
+        // 失败时默认为小屏幕设备
+        setIsMobile(window.innerWidth < 768)
       }
-
-      checkMobile()
-      
-      // 监听窗口大小变化
-      const handleResize = () => {
-        const userAgent = navigator.userAgent.toLowerCase()
-        const isMobileUserAgent = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
-        const isMobileScreen = window.innerWidth < 768
-        setIsMobile(isMobileUserAgent || isMobileScreen)
-      }
-      
-      window.addEventListener("resize", handleResize)
-      return () => window.removeEventListener("resize", handleResize)
     }
 
-    // 延迟初始化以确保DOM准备就绪
-    const timeoutId = setTimeout(initializeApp, 100)
+    // 立即检测，不使用setTimeout
+    detectMobile()
     
-    return () => clearTimeout(timeoutId)
+    // 监听resize事件
+    const handleResize = () => {
+      detectMobile()
+    }
+    
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
   }, [])
 
   // 加载数据
