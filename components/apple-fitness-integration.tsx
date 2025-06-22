@@ -10,6 +10,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Activity, Download, AlertCircle, Smartphone, Heart, Timer, Info } from "lucide-react"
 
+// 安全的数字格式化函数
+const safeToFixed = (value: any, digits: number = 1): string => {
+  if (value === null || value === undefined || value === '') {
+    return "0"
+  }
+  const num = Number(value)
+  if (isNaN(num)) {
+    return "0"
+  }
+  return num.toFixed(digits)
+}
+
 interface AppleFitnessWorkout {
   id: string
   workoutType: string
@@ -274,9 +286,9 @@ export function AppleFitnessIntegration({ onDataImported }: AppleFitnessIntegrat
 
         return {
           date: startDate,
-          distance: Number.parseFloat(distance.toFixed(1)),
+          distance: Number.parseFloat(safeToFixed(distance, 1)),
           duration,
-          pace: distance > 0 ? Number.parseFloat((duration / distance).toFixed(1)) : 6,
+          pace: distance > 0 ? Number.parseFloat(safeToFixed(duration / distance, 1)) : 6,
           location: workout.route ? "GPS路线记录" : "Apple Fitness导入",
           notes: `Apple Fitness导入${workout.totalEnergyBurned ? ` • ${Math.round(workout.totalEnergyBurned)}卡路里` : ""}`,
           images: [],
@@ -427,7 +439,7 @@ export function AppleFitnessIntegration({ onDataImported }: AppleFitnessIntegrat
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">
-                        {workout.totalDistance ? (workout.totalDistance / 1000).toFixed(1) : "N/A"} km
+                        {workout.totalDistance ? safeToFixed(workout.totalDistance / 1000, 1) : "N/A"} km
                       </p>
                       {workout.averageHeartRate && (
                         <Badge variant="outline" className="text-xs">

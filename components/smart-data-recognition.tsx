@@ -7,6 +7,18 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Eye, Zap, CheckCircle, AlertCircle } from "lucide-react"
 
+// 安全的数字格式化函数
+const safeToFixed = (value: any, digits: number = 1): string => {
+  if (value === null || value === undefined || value === '') {
+    return "0"
+  }
+  const num = Number(value)
+  if (isNaN(num)) {
+    return "0"
+  }
+  return num.toFixed(digits)
+}
+
 interface RecognitionResult {
   confidence: number
   field: string
@@ -125,11 +137,11 @@ export function SmartDataRecognition({ images, onDataExtracted }: SmartDataRecog
       const distanceMatch = text.match(patterns.distance)
       if (distanceMatch && !data.distance) {
         const distance = Number.parseFloat(distanceMatch[1])
-        data.distance = distance.toFixed(1)
+        data.distance = safeToFixed(distance, 1)
         results.push({
           confidence: confidence * 0.8,
           field: "distance",
-          value: `${distance.toFixed(1)} km`,
+          value: `${safeToFixed(distance, 1)} km`,
           source: name,
         })
       }
@@ -168,7 +180,7 @@ export function SmartDataRecognition({ images, onDataExtracted }: SmartDataRecog
         const minutes = Number.parseInt(paceMatch[1])
         const seconds = Number.parseInt(paceMatch[2])
         const pace = minutes + seconds / 60
-        data.pace = pace.toFixed(1)
+        data.pace = safeToFixed(pace, 1)
         results.push({
           confidence: confidence * 0.7,
           field: "pace",

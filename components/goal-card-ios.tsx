@@ -7,6 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Award, Edit, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// 安全的数字格式化函数
+const safeToFixed = (value: any, digits: number = 1): string => {
+  if (value === null || value === undefined || value === '') {
+    return "0"
+  }
+  const num = Number(value)
+  if (isNaN(num)) {
+    return "0"
+  }
+  return num.toFixed(digits)
+}
+
 interface GoalCardIOSProps {
   goal: {
     id: string
@@ -96,7 +108,7 @@ export function GoalCardIOS({ goal, onClick, onEdit, onDelete }: GoalCardIOSProp
           <div className="flex justify-between text-sm">
             <span>进度</span>
             <span>
-              {goal.current.toFixed(1)}/{goal.target} {goal.unit}
+              {safeToFixed(goal.current, 1)}/{goal.target} {goal.unit}
             </span>
           </div>
 

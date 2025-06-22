@@ -10,6 +10,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Heart, Download, FolderSyncIcon as Sync, CheckCircle, AlertCircle, Smartphone } from "lucide-react"
 
+// 安全的数字格式化函数
+const safeToFixed = (value: any, digits: number = 1): string => {
+  if (value === null || value === undefined || value === '') {
+    return "0"
+  }
+  const num = Number(value)
+  if (isNaN(num)) {
+    return "0"
+  }
+  return num.toFixed(digits)
+}
+
 interface HealthKitData {
   workouts: Array<{
     id: string
@@ -330,9 +342,9 @@ export function AppleHealthIntegration({ onDataImported }: AppleHealthIntegratio
 
       return {
         date: startDate,
-        distance: Number.parseFloat(distance.toFixed(1)),
+        distance: Number.parseFloat(safeToFixed(distance, 1)),
         duration: duration,
-        pace: distance > 0 ? Number.parseFloat((duration / distance).toFixed(1)) : 6, // 计算配速
+        pace: distance > 0 ? Number.parseFloat(safeToFixed(duration / distance, 1)) : 6, // 计算配速
         location: "Apple Health Import",
         notes: `从Apple Health导入 ${workout.workoutType ? `(${workout.workoutType})` : ""}${workout.totalEnergyBurned ? ` • 消耗卡路里: ${Math.round(workout.totalEnergyBurned)}` : ""}`,
         images: [],
@@ -485,7 +497,7 @@ export function AppleHealthIntegration({ onDataImported }: AppleHealthIntegratio
               {healthData.workouts.slice(0, 5).map((workout, index) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                   <div>
-                    <p className="font-medium">{workout.distance?.toFixed(1) || "N/A"} km</p>
+                    <p className="font-medium">{safeToFixed(workout.distance, 1) || "N/A"} km</p>
                     <p className="text-sm text-gray-600">
                       {workout.startDate.toLocaleDateString()} • {workout.duration} 分钟
                     </p>

@@ -7,6 +7,18 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 
+// 安全的数字格式化函数
+const safeToFixed = (value: any, digits: number = 1): string => {
+  if (value === null || value === undefined || value === '') {
+    return "0"
+  }
+  const num = Number(value)
+  if (isNaN(num)) {
+    return "0"
+  }
+  return num.toFixed(digits)
+}
+
 interface ActivityListItemProps {
   activity: {
     id: string
@@ -56,7 +68,7 @@ export function ActivityListItem({ activity, onClick }: ActivityListItemProps) {
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-base">{activity.distance} km</h3>
               <Badge variant="outline" className="font-medium">
-                {activity.pace.toFixed(1)} 配速
+                {safeToFixed(activity.pace, 1)} 配速
               </Badge>
             </div>
 
