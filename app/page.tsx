@@ -105,6 +105,18 @@ const formatDate = (date: Date | string, formatString: string, useLocale: boolea
   }
 }
 
+// Helper function for safe number formatting
+const safeToFixed = (value: any, digits: number = 1): string => {
+  if (value === null || value === undefined || value === '') {
+    return "0"
+  }
+  const num = Number(value)
+  if (isNaN(num)) {
+    return "0"
+  }
+  return num.toFixed(digits)
+}
+
 export default function RunningGoalApp() {
   const { toast } = useToast()
   const [isMobile, setIsMobile] = useState(false)
@@ -621,7 +633,7 @@ export default function RunningGoalApp() {
                   <IOSCardContent className="p-3">
                     <div className="flex flex-col items-center">
                       <MapPin className="h-6 w-6 text-blue-600 mb-1" />
-                      <p className="text-xl font-bold">{stats.totalDistance.toFixed(1)}</p>
+                      <p className="text-xl font-bold">{safeToFixed(stats.totalDistance, 1)}</p>
                       <p className="text-xs text-gray-600">总距离 (km)</p>
                     </div>
                   </IOSCardContent>
@@ -653,7 +665,7 @@ export default function RunningGoalApp() {
                   <IOSCardContent className="p-3">
                     <div className="flex flex-col items-center">
                       <Timer className="h-6 w-6 text-purple-600 mb-1" />
-                      <p className="text-xl font-bold">{stats.avgPace.toFixed(1)}</p>
+                      <p className="text-xl font-bold">{safeToFixed(stats.avgPace, 1)}</p>
                       <p className="text-xs text-gray-600">平均配速 (min/km)</p>
                     </div>
                   </IOSCardContent>
@@ -838,13 +850,13 @@ export default function RunningGoalApp() {
                     <div className="flex justify-between">
                       <span>最佳配速</span>
                       <span className="font-medium">
-                        {activities.length > 0 ? Math.min(...activities.map((a) => a.pace)).toFixed(1) : "0"} min/km
+                        {activities.length > 0 ? safeToFixed(Math.min(...activities.map((a) => a.pace)), 1) : "0"} min/km
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>最长距离</span>
                       <span className="font-medium">
-                        {activities.length > 0 ? Math.max(...activities.map((a) => a.distance)).toFixed(1) : "0"} km
+                        {activities.length > 0 ? safeToFixed(Math.max(...activities.map((a) => a.distance)), 1) : "0"} km
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -991,7 +1003,7 @@ export default function RunningGoalApp() {
                 <div className="flex items-center space-x-2">
                   <MapPin className="h-5 w-5 text-blue-600" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalDistance.toFixed(1)}</p>
+                    <p className="text-2xl font-bold">{safeToFixed(stats.totalDistance, 1)}</p>
                     <p className="text-sm text-gray-600">Total Distance (km)</p>
                   </div>
                 </div>
@@ -1029,7 +1041,7 @@ export default function RunningGoalApp() {
                 <div className="flex items-center space-x-2">
                   <Timer className="h-5 w-5 text-purple-600" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.avgPace.toFixed(1)}</p>
+                    <p className="text-2xl font-bold">{safeToFixed(stats.avgPace, 1)}</p>
                     <p className="text-sm text-gray-600">Avg Pace (min/km)</p>
                   </div>
                 </div>
@@ -1067,7 +1079,7 @@ export default function RunningGoalApp() {
                           <div className="flex justify-between items-center">
                             <h4 className="font-medium">{goal.title}</h4>
                             <Badge variant="outline">
-                              {goal.current.toFixed(1)}/{goal.target} {goal.unit}
+                              {safeToFixed(goal.current, 1)}/{goal.target} {goal.unit}
                             </Badge>
                           </div>
                           <Progress value={getProgressPercentage(goal)} className="h-2" />
@@ -1098,11 +1110,11 @@ export default function RunningGoalApp() {
                           <div>
                             <p className="font-medium">{activity.distance}km run</p>
                             <p className="text-sm text-gray-600">
-                              {formatDate(activity.date, "MMM dd")} • {activity.duration}min • {activity.pace.toFixed(1)}{" "}
+                              {formatDate(activity.date, "MMM dd")} • {activity.duration}min • {safeToFixed(activity.pace, 1)}{" "}
                               min/km
                             </p>
                           </div>
-                          <Badge variant="secondary">{activity.pace.toFixed(1)} pace</Badge>
+                          <Badge variant="secondary">{safeToFixed(activity.pace, 1)} pace</Badge>
                         </div>
                       ))}
                     {activities.length === 0 && (
@@ -1174,7 +1186,7 @@ export default function RunningGoalApp() {
                         <div className="flex justify-between text-sm">
                           <span>Progress</span>
                           <span>
-                            {goal.current.toFixed(1)}/{goal.target} {goal.unit}
+                            {safeToFixed(goal.current, 1)}/{goal.target} {goal.unit}
                           </span>
                         </div>
                         <Progress value={getProgressPercentage(goal)} className="h-2" />
@@ -1231,7 +1243,7 @@ export default function RunningGoalApp() {
                           <div className="space-y-1 flex-1">
                             <div className="flex items-center gap-4">
                               <h4 className="font-medium">{activity.distance}km Run</h4>
-                              <Badge variant="outline">{activity.pace.toFixed(1)} min/km</Badge>
+                              <Badge variant="outline">{safeToFixed(activity.pace, 1)} min/km</Badge>
                             </div>
                             <p className="text-sm text-gray-600">
                               {formatDate(activity.date, "EEEE, MMM dd, yyyy", true)} • {activity.duration} minutes
@@ -1360,13 +1372,13 @@ export default function RunningGoalApp() {
                       <div className="flex justify-between">
                         <span>Best Pace</span>
                         <span className="font-medium">
-                          {activities.length > 0 ? Math.min(...activities.map((a) => a.pace)).toFixed(1) : "0"} min/km
+                          {activities.length > 0 ? safeToFixed(Math.min(...activities.map((a) => a.pace)), 1) : "0"} min/km
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Longest Run</span>
                         <span className="font-medium">
-                          {activities.length > 0 ? Math.max(...activities.map((a) => a.distance)).toFixed(1) : "0"} km
+                          {activities.length > 0 ? safeToFixed(Math.max(...activities.map((a) => a.distance)), 1) : "0"} km
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1844,7 +1856,7 @@ function ActivityForm({
         <div className="p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
             <strong>计算配速：</strong>{" "}
-            {(Number.parseInt(formData.duration) / Number.parseFloat(formData.distance)).toFixed(1)} min/km
+            {safeToFixed(Number.parseInt(formData.duration) / Number.parseFloat(formData.distance), 1)} min/km
           </p>
         </div>
       )}
