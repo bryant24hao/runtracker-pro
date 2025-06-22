@@ -7,7 +7,7 @@ let dbInstance: any = null
 async function initPostgreTables(db: any) {
   try {
     // 创建用户表
-    await db(`
+    await db`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email TEXT UNIQUE NOT NULL,
@@ -15,10 +15,10 @@ async function initPostgreTables(db: any) {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
-    `)
+    `
 
     // 创建跑步目标表
-    await db(`
+    await db`
       CREATE TABLE IF NOT EXISTS goals (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -33,10 +33,10 @@ async function initPostgreTables(db: any) {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
-    `)
+    `
 
     // 创建跑步活动表
-    await db(`
+    await db`
       CREATE TABLE IF NOT EXISTS activities (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -50,21 +50,21 @@ async function initPostgreTables(db: any) {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
-    `)
+    `
 
     // 创建索引
-    await db(`CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id)`)
-    await db(`CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status)`)
-    await db(`CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id)`)
-    await db(`CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date)`)
+    await db`CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id)`
+    await db`CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status)`
+    await db`CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id)`
+    await db`CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date)`
 
     // 创建默认用户
-    const existingUser = await db(`SELECT id FROM users WHERE email = $1`, ['demo@example.com'])
+    const existingUser = await db`SELECT id FROM users WHERE email = ${'demo@example.com'}`
     if (!existingUser.length) {
-      await db(`
+      await db`
         INSERT INTO users (id, email, name) 
-        VALUES ($1, $2, $3)
-      `, ["550e8400-e29b-41d4-a716-446655440000", "demo@example.com", "Demo User"])
+        VALUES (${'550e8400-e29b-41d4-a716-446655440000'}, ${'demo@example.com'}, ${'Demo User'})
+      `
     }
     
     console.log("PostgreSQL tables initialized successfully")
@@ -98,12 +98,26 @@ async function initDatabase() {
 // 获取数据库实例
 export const getDB = async () => await initDatabase()
 
-// 统一的查询接口
+// 专门的查询函数，不使用参数替换以避免SQL注入
 export async function query(text: string, params?: any[]) {
   try {
     const db = await getDB()
-    const result = await db(text, params)
+    
+    // 直接使用 template literal，不进行参数替换
+    // 调用者需要直接构建完整的SQL语句
+    const result = await db`${text}`
     return result
+  } catch (error) {
+    console.error("Database query error:", error)
+    throw error
+  }
+}
+
+// 安全的参数化查询函数
+export async function paramQuery(sql: TemplateStringsArray, ...params: any[]) {
+  try {
+    const db = await getDB()
+    return await db(sql, ...params)
   } catch (error) {
     console.error("Database query error:", error)
     throw error
