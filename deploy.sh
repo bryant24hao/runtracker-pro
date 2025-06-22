@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🏃‍♂️ RunTracker Pro 部署脚本"
+echo "🏃‍♂️ WellRun 部署脚本"
 echo "=========================="
 
 # 颜色定义

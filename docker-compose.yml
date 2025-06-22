@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/runtracker
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/wellrun
     depends_on:
       - postgres
     restart: unless-stopped
@@ -15,7 +15,7 @@ services:
   postgres:
     image: postgres:15
     environment:
-      - POSTGRES_DB=runtracker
+      - POSTGRES_DB=wellrun
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
     volumes:
