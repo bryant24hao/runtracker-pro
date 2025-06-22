@@ -59,6 +59,7 @@ interface ClientGoal {
   target: number
   current: number
   unit: string
+  startDate: Date
   deadline: Date
   description?: string
   status: "active" | "completed" | "paused"
@@ -182,8 +183,8 @@ export default function RunningGoalApp() {
       } catch (error) {
         console.error("Error in mobile detection:", error)
         // 失败时默认为小屏幕设备
-        setIsMobile(window.innerWidth < 768)
-      }
+      setIsMobile(window.innerWidth < 768)
+    }
     }
 
     // 立即检测，不使用setTimeout
@@ -222,6 +223,7 @@ export default function RunningGoalApp() {
         target: goal.target,
         current: goal.current_value,
         unit: goal.unit,
+        startDate: new Date(goal.start_date),
         deadline: new Date(goal.deadline),
         description: goal.description,
         status: goal.status,
@@ -266,6 +268,7 @@ export default function RunningGoalApp() {
         type: goalData.type,
         target: goalData.target,
         unit: goalData.unit,
+        start_date: goalData.startDate.toISOString().split("T")[0],
         deadline: goalData.deadline.toISOString().split("T")[0],
         description: goalData.description,
       }
@@ -279,6 +282,7 @@ export default function RunningGoalApp() {
         target: newGoal.target,
         current: newGoal.current_value,
         unit: newGoal.unit,
+        startDate: new Date(newGoal.start_date),
         deadline: new Date(newGoal.deadline),
         description: newGoal.description,
         status: newGoal.status,
@@ -351,6 +355,7 @@ export default function RunningGoalApp() {
         target: goal.target,
         current: goal.current_value,
         unit: goal.unit,
+        startDate: new Date(goal.start_date),
         deadline: new Date(goal.deadline),
         description: goal.description,
         status: goal.status,
@@ -439,6 +444,7 @@ export default function RunningGoalApp() {
         target: goal.target,
         current: goal.current_value,
         unit: goal.unit,
+        startDate: new Date(goal.start_date),
         deadline: new Date(goal.deadline),
         description: goal.description,
         status: goal.status,
@@ -495,6 +501,7 @@ export default function RunningGoalApp() {
         target: goal.target,
         current: goal.current_value,
         unit: goal.unit,
+        startDate: new Date(goal.start_date),
         deadline: new Date(goal.deadline),
         description: goal.description,
         status: goal.status,
@@ -531,6 +538,7 @@ export default function RunningGoalApp() {
         type: updatedGoal.type,
         target: updatedGoal.target,
         unit: updatedGoal.unit,
+        start_date: updatedGoal.startDate.toISOString().split("T")[0],
         deadline: updatedGoal.deadline.toISOString().split("T")[0],
         description: updatedGoal.description,
         status: updatedGoal.status,
@@ -557,6 +565,7 @@ export default function RunningGoalApp() {
         target: goal.target,
         current: goal.current_value,
         unit: goal.unit,
+        startDate: new Date(goal.start_date),
         deadline: new Date(goal.deadline),
         description: goal.description,
         status: goal.status,
@@ -675,7 +684,7 @@ export default function RunningGoalApp() {
     return (
       <ErrorBoundary>
         <div className="mobile-app-wrapper">
-          <MobileLayout
+        <MobileLayout
           title={
             activeTab === "dashboard"
               ? "WellRun"
@@ -1217,11 +1226,11 @@ export default function RunningGoalApp() {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <CardTitle className="text-lg">{goal.title}</CardTitle>
+                        <CardTitle className="text-lg">{goal.title}</CardTitle>
                           {goal.description && <CardDescription>{goal.description}</CardDescription>}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={goal.status === "completed" ? "default" : "secondary"}>{goal.status}</Badge>
+                        <Badge variant={goal.status === "completed" ? "default" : "secondary"}>{goal.status}</Badge>
                           <div className="flex gap-1">
                             <Button
                               variant="ghost"
@@ -1242,7 +1251,7 @@ export default function RunningGoalApp() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </div>
+                      </div>
                         </div>
                       </div>
                     </CardHeader>
@@ -1539,6 +1548,7 @@ function GoalForm({
     type: (initialData?.type as "distance" | "time" | "frequency") || "distance",
     target: initialData?.target.toString() || "",
     unit: initialData?.unit || "km",
+    startDate: initialData?.startDate || new Date(),
     deadline: initialData?.deadline || undefined,
     description: initialData?.description || "",
   })
@@ -1547,11 +1557,18 @@ function GoalForm({
     e.preventDefault()
     if (!formData.title || !formData.target || !formData.deadline) return
 
+    // 验证开始日期不能晚于截止日期
+    if (formData.startDate > formData.deadline) {
+      alert("开始日期不能晚于截止日期！")
+      return
+    }
+
     onSubmit({
       title: formData.title,
       type: formData.type,
       target: Number.parseFloat(formData.target),
       unit: formData.unit,
+      startDate: formData.startDate,
       deadline: formData.deadline,
       description: formData.description,
     })
@@ -1561,6 +1578,7 @@ function GoalForm({
       type: "distance",
       target: "",
       unit: "km",
+      startDate: new Date(),
       deadline: undefined,
       description: "",
     })
@@ -1629,6 +1647,68 @@ function GoalForm({
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          {isMobile ? (
+            <MobileDatePicker
+              date={formData.startDate}
+              onDateChange={(date) => setFormData({ ...formData, startDate: date })}
+              label="开始日期"
+            />
+          ) : (
+            <>
+              <Label>开始日期</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formatDate(formData.startDate, "yyyy年M月d日", true)}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.startDate}
+                    onSelect={(date) => date && setFormData({ ...formData, startDate: date })}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+        </div>
+
+        <div>
+          {isMobile ? (
+            <MobileDatePicker
+              date={formData.deadline || new Date()}
+              onDateChange={(date) => setFormData({ ...formData, deadline: date })}
+              label="截止日期"
+            />
+          ) : (
+            <>
+              <Label>截止日期</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.deadline ? formatDate(formData.deadline, "yyyy年M月d日", true) : "选择日期"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.deadline}
+                    onSelect={(date) => setFormData({ ...formData, deadline: date })}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+        </div>
+      </div>
+
       <div>
         <Label htmlFor="unit">单位</Label>
         <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
@@ -1645,35 +1725,7 @@ function GoalForm({
         </Select>
       </div>
 
-      <div>
-        {isMobile ? (
-          <MobileDatePicker
-            date={formData.deadline || new Date()}
-            onDateChange={(date) => setFormData({ ...formData, deadline: date })}
-            label="截止日期"
-          />
-        ) : (
-          <>
-            <Label>截止日期</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.deadline ? formatDate(formData.deadline, "yyyy年M月d日", true) : "选择日期"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.deadline}
-                  onSelect={(date) => setFormData({ ...formData, deadline: date })}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </>
-        )}
-      </div>
+
 
       <div>
         <Label htmlFor="description">描述（可选）</Label>

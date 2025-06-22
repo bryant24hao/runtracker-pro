@@ -14,6 +14,7 @@ export interface Goal {
   target: number
   current_value: number
   unit: string
+  start_date: string
   deadline: string
   description?: string
   status: "active" | "completed" | "paused"
@@ -40,6 +41,7 @@ export interface CreateGoalRequest {
   type: "distance" | "time" | "frequency"
   target: number
   unit: string
+  start_date: string
   deadline: string
   description?: string
 }

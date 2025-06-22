@@ -24,15 +24,20 @@ export async function POST(request: NextRequest) {
     const body: CreateGoalRequest = await request.json()
 
     // 验证必填字段
-    if (!body.title || !body.type || !body.target || !body.unit || !body.deadline) {
+    if (!body.title || !body.type || !body.target || !body.unit || !body.start_date || !body.deadline) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    // 验证开始日期不能晚于截止日期
+    if (new Date(body.start_date) > new Date(body.deadline)) {
+      return NextResponse.json({ error: "Start date cannot be later than deadline" }, { status: 400 })
     }
 
     const goalId = randomUUID()
     
     await paramQuery`
-      INSERT INTO goals (id, user_id, title, type, target, unit, deadline, description)
-      VALUES (${goalId}, ${userId}, ${body.title}, ${body.type}, ${body.target}, ${body.unit}, ${body.deadline}, ${body.description || ""})
+      INSERT INTO goals (id, user_id, title, type, target, unit, start_date, deadline, description)
+      VALUES (${goalId}, ${userId}, ${body.title}, ${body.type}, ${body.target}, ${body.unit}, ${body.start_date}, ${body.deadline}, ${body.description || ""})
     `
 
     // 获取刚创建的目标

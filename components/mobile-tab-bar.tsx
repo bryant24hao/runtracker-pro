@@ -14,8 +14,8 @@ export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const userAgent = navigator.userAgent.toLowerCase()
-      setIsIOS(/iphone|ipad|ipod/.test(userAgent))
+    const userAgent = navigator.userAgent.toLowerCase()
+    setIsIOS(/iphone|ipad|ipod/.test(userAgent))
     }
   }, [])
 

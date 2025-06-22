@@ -27,15 +27,15 @@ export function MobileLayout({
   // 检测是否为iOS设备
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const userAgent = navigator.userAgent.toLowerCase()
-      setIsIOS(/iphone|ipad|ipod/.test(userAgent))
+    const userAgent = navigator.userAgent.toLowerCase()
+    setIsIOS(/iphone|ipad|ipod/.test(userAgent))
 
-      const handleScroll = () => {
-        setIsScrolled(window.scrollY > 10)
-      }
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10)
+    }
 
-      window.addEventListener("scroll", handleScroll)
-      return () => window.removeEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
     }
   }, [])
 

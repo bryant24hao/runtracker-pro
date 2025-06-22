@@ -56,9 +56,15 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       target: body.target !== undefined ? body.target : existingGoal.target,
       current_value: body.current_value !== undefined ? body.current_value : existingGoal.current_value,
       unit: body.unit !== undefined ? body.unit : existingGoal.unit,
+      start_date: body.start_date !== undefined ? body.start_date : existingGoal.start_date,
       deadline: body.deadline !== undefined ? body.deadline : existingGoal.deadline,
       description: body.description !== undefined ? body.description : existingGoal.description,
       status: body.status !== undefined ? body.status : existingGoal.status
+    }
+
+    // 验证开始日期不能晚于截止日期
+    if (new Date(updateData.start_date) > new Date(updateData.deadline)) {
+      return NextResponse.json({ error: "Start date cannot be later than deadline" }, { status: 400 })
     }
 
     // 检查是否有实际更新
@@ -81,6 +87,7 @@ export async function PUT(request: NextRequest, context: RouteParams) {
         target = ${updateData.target},
         current_value = ${updateData.current_value},
         unit = ${updateData.unit},
+        start_date = ${updateData.start_date},
         deadline = ${updateData.deadline},
         description = ${updateData.description},
         status = ${updateData.status},
@@ -124,8 +131,8 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
     const { id: goalId } = await context.params
     console.log(`🎯 Attempting to delete goal ${goalId} for user ${userId}`)
 
-    // 先检查目标是否存在
-    const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
+    // 简化查询：在单用户系统中只需要检查ID
+    const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId}`
 
     const goal = Array.isArray(goals) ? goals[0] : goals
 
@@ -136,8 +143,8 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
 
     console.log("🔍 Goal found, proceeding with deletion")
 
-    // 删除目标
-    await paramQuery`DELETE FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
+    // 简化删除：只按ID删除
+    await paramQuery`DELETE FROM goals WHERE id = ${goalId}`
     
     console.log("✅ Goal deleted successfully")
     return NextResponse.json({ 

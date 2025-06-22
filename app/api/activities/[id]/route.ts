@@ -137,38 +137,43 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 // 重新计算目标进度的辅助函数
 async function recalculateGoalProgress(userId: string) {
   try {
-    const goalsResult = await paramQuery`SELECT * FROM goals WHERE user_id = ${userId}`
-
-    const goals = Array.isArray(goalsResult) ? goalsResult : [goalsResult]
-
-    const activitiesResult = await paramQuery`SELECT * FROM activities WHERE user_id = ${userId}`
-
-    const activities = Array.isArray(activitiesResult) ? activitiesResult : [activitiesResult]
+    // 获取所有活跃的目标
+    const goalsResult = await paramQuery`SELECT * FROM goals WHERE user_id = ${userId} AND status = 'active'`
+    const goals = Array.isArray(goalsResult) ? goalsResult : [goalsResult].filter(Boolean)
 
     for (const goal of goals) {
       if (!goal) continue
       
-      let currentValue = 0
+      console.log(`🔄 Recalculating progress for goal: "${goal.title}"`)
 
-      for (const activity of activities) {
-        if (!activity) continue
-        
-        switch (goal.type) {
-          case "distance":
-            currentValue += Number(activity.distance) || 0
-            break
-          case "time":
-            currentValue += Number(activity.duration) || 0
-            break
-          case "frequency":
-            currentValue += 1
-            break
-        }
+      // 获取目标日期范围内的所有活动
+      const relevantActivities = await paramQuery`
+        SELECT * FROM activities 
+        WHERE user_id = ${userId} 
+        AND date >= ${goal.start_date} 
+        AND date <= ${goal.deadline}
+      `
+
+      const activitiesArray = Array.isArray(relevantActivities) ? relevantActivities : [relevantActivities].filter(Boolean)
+      let newCurrentValue = 0
+
+      switch (goal.type) {
+        case "distance":
+          newCurrentValue = activitiesArray.reduce((sum, act) => sum + (act?.distance || 0), 0)
+          break
+        case "time":
+          newCurrentValue = activitiesArray.reduce((sum, act) => sum + (act?.duration || 0), 0)
+          break
+        case "frequency":
+          newCurrentValue = activitiesArray.length
+          break
       }
 
-      const status = currentValue >= goal.target ? "completed" : "active"
+      const newStatus = newCurrentValue >= goal.target ? "completed" : "active"
 
-      await paramQuery`UPDATE goals SET current_value = ${currentValue}, status = ${status} WHERE id = ${goal.id}`
+      console.log(`📊 Goal "${goal.title}": ${newCurrentValue}/${goal.target} ${goal.unit} (${newStatus})`)
+
+      await paramQuery`UPDATE goals SET current_value = ${newCurrentValue}, status = ${newStatus} WHERE id = ${goal.id}`
     }
   } catch (error) {
     console.error("Error recalculating goal progress:", error)

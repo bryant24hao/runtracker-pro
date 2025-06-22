@@ -75,12 +75,12 @@ export function GoalCardIOS({ goal, onClick, onEdit, onDelete }: GoalCardIOSProp
       <div className="p-4">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <h3 className="font-semibold text-base">{goal.title}</h3>
+          <h3 className="font-semibold text-base">{goal.title}</h3>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={getStatusColor()}>
-              {goal.status === "active" ? "进行中" : goal.status === "completed" ? "已完成" : "已暂停"}
-            </Badge>
+          <Badge className={getStatusColor()}>
+            {goal.status === "active" ? "进行中" : goal.status === "completed" ? "已完成" : "已暂停"}
+          </Badge>
             <div className="flex gap-1">
               <Button
                 variant="ghost"

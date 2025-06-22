@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "50")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
+    // 暂时去掉WHERE条件，因为我们是单用户系统
     const activities = await paramQuery`
       SELECT * FROM activities 
-      WHERE user_id = ${userId}
       ORDER BY date DESC, created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `
@@ -73,34 +73,61 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 更新目标进度的辅助函数
+// 更新目标进度的辅助函数（基于日期范围）
 async function updateGoalProgress(userId: string, activity: CreateActivityRequest) {
   try {
     // 获取所有活跃的目标
     const activeGoals = await paramQuery`SELECT * FROM goals WHERE user_id = ${userId} AND status = 'active'`
 
     const goalsArray = Array.isArray(activeGoals) ? activeGoals : [activeGoals]
+    const activityDate = new Date(activity.date)
 
     for (const goal of goalsArray) {
       if (!goal) continue
       
-      let newCurrentValue = goal.current_value
+      // 检查活动是否在目标的日期范围内
+      const startDate = new Date(goal.start_date)
+      const endDate = new Date(goal.deadline)
+      
+      if (activityDate < startDate || activityDate > endDate) {
+        console.log(`📅 活动日期 ${activity.date} 不在目标"${goal.title}"的范围内 (${goal.start_date} - ${goal.deadline})`)
+        continue
+      }
+
+      console.log(`✅ 活动日期 ${activity.date} 在目标"${goal.title}"的范围内，更新进度`)
+
+      // 重新计算整个目标的进度（基于日期范围内的所有活动）
+      const relevantActivities = await paramQuery`
+        SELECT * FROM activities 
+        WHERE user_id = ${userId} 
+        AND date >= ${goal.start_date} 
+        AND date <= ${goal.deadline}
+      `
+
+      const activitiesArray = Array.isArray(relevantActivities) ? relevantActivities : [relevantActivities].filter(Boolean)
+      let newCurrentValue = 0
 
       switch (goal.type) {
         case "distance":
-          newCurrentValue += activity.distance
+          newCurrentValue = activitiesArray.reduce((sum, act) => sum + (act?.distance || 0), 0)
           break
         case "time":
-          newCurrentValue += activity.duration
+          newCurrentValue = activitiesArray.reduce((sum, act) => sum + (act?.duration || 0), 0)
           break
         case "frequency":
-          newCurrentValue += 1
+          newCurrentValue = activitiesArray.length
           break
       }
 
       const newStatus = newCurrentValue >= goal.target ? "completed" : "active"
 
+      console.log(`📈 目标"${goal.title}"进度更新：${newCurrentValue}/${goal.target} ${goal.unit}`)
+
       await paramQuery`UPDATE goals SET current_value = ${newCurrentValue}, status = ${newStatus} WHERE id = ${goal.id}`
+
+      if (newStatus === "completed" && goal.status !== "completed") {
+        console.log(`🎉 目标"${goal.title}"已完成！`)
+      }
     }
   } catch (error) {
     console.error("Error updating goal progress:", error)
