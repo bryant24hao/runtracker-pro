@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, getCurrentUserId } from "@/lib/db"
+import { paramQuery, getCurrentUserId } from "@/lib/db"
 import type { UpdateGoalRequest } from "@/lib/types"
 
 // 获取单个目标
@@ -8,10 +8,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const userId = getCurrentUserId()
     const { id: goalId } = await params
 
-    const goals = await query(
-      "SELECT * FROM goals WHERE id = ? AND user_id = ?",
-      [goalId, userId]
-    )
+    const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
 
     const goal = Array.isArray(goals) ? goals[0] : goals
 
@@ -33,66 +30,55 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id: goalId } = await params
     const body: UpdateGoalRequest = await request.json()
 
-    // 构建更新字段
-    const updateFields = []
-    const updateValues = []
+    // 先检查目标是否存在
+    const existingGoals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
+    const existingGoal = Array.isArray(existingGoals) ? existingGoals[0] : existingGoals
 
-    if (body.title !== undefined) {
-      updateFields.push("title = ?")
-      updateValues.push(body.title)
-    }
-    if (body.type !== undefined) {
-      updateFields.push("type = ?")
-      updateValues.push(body.type)
-    }
-    if (body.target !== undefined) {
-      updateFields.push("target = ?")
-      updateValues.push(body.target)
-    }
-    if (body.current_value !== undefined) {
-      updateFields.push("current_value = ?")
-      updateValues.push(body.current_value)
-    }
-    if (body.unit !== undefined) {
-      updateFields.push("unit = ?")
-      updateValues.push(body.unit)
-    }
-    if (body.deadline !== undefined) {
-      updateFields.push("deadline = ?")
-      updateValues.push(body.deadline)
-    }
-    if (body.description !== undefined) {
-      updateFields.push("description = ?")
-      updateValues.push(body.description)
-    }
-    if (body.status !== undefined) {
-      updateFields.push("status = ?")
-      updateValues.push(body.status)
-    }
-
-    if (updateFields.length === 0) {
-      return NextResponse.json({ error: "No fields to update" }, { status: 400 })
-    }
-
-    // 添加WHERE条件的参数
-    updateValues.push(goalId, userId)
-
-    await query(
-      `UPDATE goals SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
-      updateValues
-    )
-
-    // 获取更新后的目标
-    const goals = await query(
-      "SELECT * FROM goals WHERE id = ? AND user_id = ?",
-      [goalId, userId]
-    )
-
-    const goal = Array.isArray(goals) ? goals[0] : goals
-
-    if (!goal) {
+    if (!existingGoal) {
       return NextResponse.json({ error: "Goal not found" }, { status: 404 })
     }
+
+    // 创建更新的数据对象，保留现有值
+    const updateData = {
+      title: body.title !== undefined ? body.title : existingGoal.title,
+      type: body.type !== undefined ? body.type : existingGoal.type,
+      target: body.target !== undefined ? body.target : existingGoal.target,
+      current_value: body.current_value !== undefined ? body.current_value : existingGoal.current_value,
+      unit: body.unit !== undefined ? body.unit : existingGoal.unit,
+      deadline: body.deadline !== undefined ? body.deadline : existingGoal.deadline,
+      description: body.description !== undefined ? body.description : existingGoal.description,
+      status: body.status !== undefined ? body.status : existingGoal.status
+    }
+
+    // 检查是否有实际更新
+    const hasChanges = Object.keys(body).some(key => {
+      const typedKey = key as keyof UpdateGoalRequest
+      return body[typedKey] !== undefined && body[typedKey] !== existingGoal[key]
+    })
+    
+    if (!hasChanges) {
+      return NextResponse.json({ goal: existingGoal })
+    }
+
+    // 执行更新
+    await paramQuery`
+      UPDATE goals SET 
+        title = ${updateData.title},
+        type = ${updateData.type},
+        target = ${updateData.target},
+        current_value = ${updateData.current_value},
+        unit = ${updateData.unit},
+        deadline = ${updateData.deadline},
+        description = ${updateData.description},
+        status = ${updateData.status},
+        updated_at = NOW()
+      WHERE id = ${goalId} AND user_id = ${userId}
+    `
+
+    // 获取更新后的目标
+    const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
+
+    const goal = Array.isArray(goals) ? goals[0] : goals
 
     return NextResponse.json({ goal })
   } catch (error) {
@@ -108,10 +94,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id: goalId } = await params
 
     // 先检查目标是否存在
-    const goals = await query(
-      "SELECT * FROM goals WHERE id = ? AND user_id = ?",
-      [goalId, userId]
-    )
+    const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
 
     const goal = Array.isArray(goals) ? goals[0] : goals
 
@@ -120,10 +103,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // 删除目标
-    await query(
-      "DELETE FROM goals WHERE id = ? AND user_id = ?",
-      [goalId, userId]
-    )
+    await paramQuery`DELETE FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
 
     return NextResponse.json({ message: "Goal deleted successfully" })
   } catch (error) {

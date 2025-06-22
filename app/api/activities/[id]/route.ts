@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, getCurrentUserId } from "@/lib/db"
+import { paramQuery, getCurrentUserId } from "@/lib/db"
 import type { UpdateActivityRequest } from "@/lib/types"
 
 // 解析活动数据的辅助函数
@@ -18,10 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const userId = getCurrentUserId()
     const { id: activityId } = await params
 
-    const activities = await query(
-      "SELECT * FROM activities WHERE id = ? AND user_id = ?",
-      [activityId, userId]
-    )
+    const activities = await paramQuery`SELECT * FROM activities WHERE id = ${activityId} AND user_id = ${userId}`
 
     const activity = Array.isArray(activities) ? activities[0] : activities
 
@@ -45,11 +42,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id: activityId } = await params
     const body: UpdateActivityRequest = await request.json()
 
-    // 获取原始活动数据（用于回滚目标进度）
-    const originalActivities = await query(
-      "SELECT * FROM activities WHERE id = ? AND user_id = ?",
-      [activityId, userId]
-    )
+    // 获取原始活动数据
+    const originalActivities = await paramQuery`SELECT * FROM activities WHERE id = ${activityId} AND user_id = ${userId}`
 
     const originalActivity = Array.isArray(originalActivities) ? originalActivities[0] : originalActivities
 
@@ -57,56 +51,47 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Activity not found" }, { status: 404 })
     }
 
-    // 构建更新字段
-    const updateFields = []
-    const updateValues = []
-
-    if (body.date !== undefined) {
-      updateFields.push("date = ?")
-      updateValues.push(body.date)
-    }
-    if (body.distance !== undefined) {
-      updateFields.push("distance = ?")
-      updateValues.push(body.distance)
-    }
-    if (body.duration !== undefined) {
-      updateFields.push("duration = ?")
-      updateValues.push(body.duration)
-    }
-    if (body.pace !== undefined) {
-      updateFields.push("pace = ?")
-      updateValues.push(body.pace)
-    }
-    if (body.location !== undefined) {
-      updateFields.push("location = ?")
-      updateValues.push(body.location)
-    }
-    if (body.notes !== undefined) {
-      updateFields.push("notes = ?")
-      updateValues.push(body.notes)
-    }
-    if (body.images !== undefined) {
-      updateFields.push("images = ?")
-      updateValues.push(JSON.stringify(body.images))
+    // 创建更新的数据对象，保留现有值
+    const updateData = {
+      date: body.date !== undefined ? body.date : originalActivity.date,
+      distance: body.distance !== undefined ? body.distance : originalActivity.distance,
+      duration: body.duration !== undefined ? body.duration : originalActivity.duration,
+      pace: body.pace !== undefined ? body.pace : originalActivity.pace,
+      location: body.location !== undefined ? body.location : originalActivity.location,
+      notes: body.notes !== undefined ? body.notes : originalActivity.notes,
+      images: body.images !== undefined ? JSON.stringify(body.images) : originalActivity.images
     }
 
-    if (updateFields.length === 0) {
-      return NextResponse.json({ error: "No fields to update" }, { status: 400 })
+    // 检查是否有实际更新
+    const hasChanges = Object.keys(body).some(key => {
+      const typedKey = key as keyof UpdateActivityRequest
+      if (typedKey === 'images') {
+        return body[typedKey] !== undefined && JSON.stringify(body[typedKey]) !== originalActivity.images
+      }
+      return body[typedKey] !== undefined && body[typedKey] !== originalActivity[key]
+    })
+
+    if (!hasChanges) {
+      const parsedActivity = parseActivityData(originalActivity)
+      return NextResponse.json({ activity: parsedActivity })
     }
 
-    // 添加WHERE条件的参数
-    updateValues.push(activityId, userId)
-
-    await query(
-      `UPDATE activities SET ${updateFields.join(", ")} WHERE id = ? AND user_id = ?`,
-      updateValues
-    )
+    // 执行更新
+    await paramQuery`
+      UPDATE activities SET 
+        date = ${updateData.date},
+        distance = ${updateData.distance},
+        duration = ${updateData.duration},
+        pace = ${updateData.pace},
+        location = ${updateData.location},
+        notes = ${updateData.notes},
+        images = ${updateData.images},
+        updated_at = NOW()
+      WHERE id = ${activityId} AND user_id = ${userId}
+    `
 
     // 获取更新后的活动
-    const updatedActivities = await query(
-      "SELECT * FROM activities WHERE id = ? AND user_id = ?",
-      [activityId, userId]
-    )
+    const updatedActivities = await paramQuery`SELECT * FROM activities WHERE id = ${activityId} AND user_id = ${userId}`
 
     const activity = Array.isArray(updatedActivities) ? updatedActivities[0] : updatedActivities
     const parsedActivity = parseActivityData(activity)
@@ -128,10 +113,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id: activityId } = await params
 
     // 先检查活动是否存在
-    const activities = await query(
-      "SELECT * FROM activities WHERE id = ? AND user_id = ?",
-      [activityId, userId]
-    )
+    const activities = await paramQuery`SELECT * FROM activities WHERE id = ${activityId} AND user_id = ${userId}`
 
     const activity = Array.isArray(activities) ? activities[0] : activities
 
@@ -140,10 +122,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // 删除活动
-    await query(
-      "DELETE FROM activities WHERE id = ? AND user_id = ?",
-      [activityId, userId]
-    )
+    await paramQuery`DELETE FROM activities WHERE id = ${activityId} AND user_id = ${userId}`
 
     // 重新计算目标进度
     await recalculateGoalProgress(userId)
@@ -158,17 +137,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 // 重新计算目标进度的辅助函数
 async function recalculateGoalProgress(userId: string) {
   try {
-    const goalsResult = await query(
-      "SELECT * FROM goals WHERE user_id = ?",
-      [userId]
-    )
+    const goalsResult = await paramQuery`SELECT * FROM goals WHERE user_id = ${userId}`
 
     const goals = Array.isArray(goalsResult) ? goalsResult : [goalsResult]
 
-    const activitiesResult = await query(
-      "SELECT * FROM activities WHERE user_id = ?",
-      [userId]
-    )
+    const activitiesResult = await paramQuery`SELECT * FROM activities WHERE user_id = ${userId}`
 
     const activities = Array.isArray(activitiesResult) ? activitiesResult : [activitiesResult]
 
@@ -195,10 +168,7 @@ async function recalculateGoalProgress(userId: string) {
 
       const status = currentValue >= goal.target ? "completed" : "active"
 
-      await query(
-        "UPDATE goals SET current_value = ?, status = ? WHERE id = ?",
-        [currentValue, status, goal.id]
-      )
+      await paramQuery`UPDATE goals SET current_value = ${currentValue}, status = ${status} WHERE id = ${goal.id}`
     }
   } catch (error) {
     console.error("Error recalculating goal progress:", error)

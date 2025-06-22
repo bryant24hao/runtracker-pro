@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, getCurrentUserId } from "@/lib/db"
+import { paramQuery, getCurrentUserId } from "@/lib/db"
 import type { CreateGoalRequest } from "@/lib/types"
 import { randomUUID } from "crypto"
 
@@ -8,10 +8,7 @@ export async function GET() {
   try {
     const userId = getCurrentUserId()
 
-    const goals = await query(
-      "SELECT * FROM goals WHERE user_id = ? ORDER BY created_at DESC",
-      [userId]
-    )
+    const goals = await paramQuery`SELECT * FROM goals WHERE user_id = ${userId} ORDER BY created_at DESC`
 
     return NextResponse.json({ goals })
   } catch (error) {
@@ -33,17 +30,13 @@ export async function POST(request: NextRequest) {
 
     const goalId = randomUUID()
     
-    await query(
-      `INSERT INTO goals (id, user_id, title, type, target, unit, deadline, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [goalId, userId, body.title, body.type, body.target, body.unit, body.deadline, body.description || ""]
-    )
+    await paramQuery`
+      INSERT INTO goals (id, user_id, title, type, target, unit, deadline, description)
+      VALUES (${goalId}, ${userId}, ${body.title}, ${body.type}, ${body.target}, ${body.unit}, ${body.deadline}, ${body.description || ""})
+    `
 
     // 获取刚创建的目标
-    const goals = await query(
-      "SELECT * FROM goals WHERE id = ?",
-      [goalId]
-    )
+    const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId}`
 
     const goal = Array.isArray(goals) ? goals[0] : goals
 
