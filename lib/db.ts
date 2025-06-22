@@ -354,11 +354,20 @@ export const getDB = async (): Promise<any> => {
   } else {
     // 使用真实的PostgreSQL数据库
     try {
-      if (!global.globalDbInstance) {
-        console.log("🐘 Creating PostgreSQL connection")
-        global.globalDbInstance = neon(process.env.DATABASE_URL!)
+      if (typeof global !== 'undefined') {
+        if (!global.globalDbInstance) {
+          console.log("🐘 Creating PostgreSQL connection")
+          global.globalDbInstance = neon(process.env.DATABASE_URL!)
+        }
+        return global.globalDbInstance
+      } else {
+        // 非global环境
+        if (!globalDbInstance) {
+          console.log("🐘 Creating PostgreSQL connection (non-global)")
+          globalDbInstance = neon(process.env.DATABASE_URL!)
+        }
+        return globalDbInstance
       }
-      return global.globalDbInstance
     } catch (error) {
       console.error("❌ PostgreSQL connection failed, falling back to mock database:", error)
       shouldUseMockDatabase = true
@@ -371,6 +380,10 @@ export const getDB = async (): Promise<any> => {
 export async function paramQuery(sql: TemplateStringsArray, ...params: any[]) {
   try {
     const db = await getDB()
+    if (typeof db !== 'function') {
+      console.error("❌ Database instance is not a function:", typeof db)
+      throw new Error("Invalid database instance")
+    }
     return await db(sql, ...params)
   } catch (error) {
     console.error("🚨 Database query error:", error)
