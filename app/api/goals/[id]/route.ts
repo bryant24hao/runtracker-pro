@@ -102,6 +102,20 @@ export async function PUT(request: NextRequest, context: RouteParams) {
 }
 
 // 删除目标
+// OPTIONS 方法支持
+export async function OPTIONS(request: NextRequest) {
+  console.log("🔧 OPTIONS method called for CORS preflight")
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  })
+}
+
 export async function DELETE(request: NextRequest, context: RouteParams) {
   console.log("🚀 DELETE method called for goal deletion")
   
