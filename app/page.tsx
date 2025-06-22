@@ -133,26 +133,39 @@ export default function RunningGoalApp() {
   const [editingGoal, setEditingGoal] = useState<ClientGoal | null>(null)
   const [isClient, setIsClient] = useState(false)
 
-  // 设置客户端渲染标记
+  // 统一的客户端初始化
   useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // 检测是否为移动设备
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const initializeApp = () => {
+      setIsClient(true)
+      
+      // 更全面的移动端检测
       const checkMobile = () => {
-        setIsMobile(window.innerWidth < 768)
+        const userAgent = navigator.userAgent.toLowerCase()
+        const isMobileUserAgent = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+        const isMobileScreen = window.innerWidth < 768
+        
+        // 移动端检测：用户代理 OR 屏幕宽度
+        setIsMobile(isMobileUserAgent || isMobileScreen)
       }
 
-      // 延迟检测以避免hydration错误
-      const timeoutId = setTimeout(checkMobile, 0)
-      window.addEventListener("resize", checkMobile)
-      return () => {
-        clearTimeout(timeoutId)
-        window.removeEventListener("resize", checkMobile)
+      checkMobile()
+      
+      // 监听窗口大小变化
+      const handleResize = () => {
+        const userAgent = navigator.userAgent.toLowerCase()
+        const isMobileUserAgent = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+        const isMobileScreen = window.innerWidth < 768
+        setIsMobile(isMobileUserAgent || isMobileScreen)
       }
+      
+      window.addEventListener("resize", handleResize)
+      return () => window.removeEventListener("resize", handleResize)
     }
+
+    // 延迟初始化以确保DOM准备就绪
+    const timeoutId = setTimeout(initializeApp, 100)
+    
+    return () => clearTimeout(timeoutId)
   }, [])
 
   // 加载数据
@@ -596,12 +609,30 @@ export default function RunningGoalApp() {
     return Math.min((goal.current / goal.target) * 100, 100)
   }
 
-  if (isLoading || !isClient) {
+  if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          <p className="text-gray-600">加载中...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4 p-8">
+          <div className="w-16 h-16 mx-auto">
+            <svg className="animate-spin h-16 w-16 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <p className="text-lg font-medium text-gray-700">正在初始化应用...</p>
+          <p className="text-sm text-gray-500">请稍等片刻</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center space-y-4 p-8">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-600" />
+          <p className="text-lg font-medium text-gray-700">加载数据中...</p>
+          <p className="text-sm text-gray-500">正在获取您的跑步数据</p>
         </div>
       </div>
     )
@@ -609,9 +640,12 @@ export default function RunningGoalApp() {
 
   // 移动端渲染
   if (isMobile) {
+    console.log("🔍 Rendering mobile version", { isMobile, isClient, isLoading })
+    
     return (
       <ErrorBoundary>
-        <MobileLayout
+        <div className="mobile-app-wrapper">
+          <MobileLayout
           title={
             activeTab === "dashboard"
               ? "RunTracker Pro"
@@ -978,6 +1012,7 @@ export default function RunningGoalApp() {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </ErrorBoundary>
     )
   }
