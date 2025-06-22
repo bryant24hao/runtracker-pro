@@ -1,21 +1,29 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { paramQuery, getCurrentUserId } from "@/lib/db"
 import type { UpdateGoalRequest } from "@/lib/types"
 
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
+
 // 获取单个目标
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, context: RouteParams) {
+  console.log("GET method called for goal")
   try {
     const userId = getCurrentUserId()
-    const { id: goalId } = await params
+    const { id: goalId } = await context.params
+    console.log(`Fetching goal ${goalId} for user ${userId}`)
 
     const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
 
     const goal = Array.isArray(goals) ? goals[0] : goals
 
     if (!goal) {
+      console.log("Goal not found")
       return NextResponse.json({ error: "Goal not found" }, { status: 404 })
     }
 
+    console.log("Goal found successfully")
     return NextResponse.json({ goal })
   } catch (error) {
     console.error("Error fetching goal:", error)
@@ -24,17 +32,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // 更新目标
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, context: RouteParams) {
+  console.log("PUT method called for goal update")
   try {
     const userId = getCurrentUserId()
-    const { id: goalId } = await params
+    const { id: goalId } = await context.params
     const body: UpdateGoalRequest = await request.json()
+    console.log(`Updating goal ${goalId} for user ${userId}`)
 
     // 先检查目标是否存在
     const existingGoals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
     const existingGoal = Array.isArray(existingGoals) ? existingGoals[0] : existingGoals
 
     if (!existingGoal) {
+      console.log("Goal not found for update")
       return NextResponse.json({ error: "Goal not found" }, { status: 404 })
     }
 
@@ -57,10 +68,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     })
     
     if (!hasChanges) {
+      console.log("No changes detected")
       return NextResponse.json({ goal: existingGoal })
     }
 
     // 执行更新
+    console.log("Executing goal update")
     await paramQuery`
       UPDATE goals SET 
         title = ${updateData.title},
@@ -80,6 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const goal = Array.isArray(goals) ? goals[0] : goals
 
+    console.log("Goal updated successfully")
     return NextResponse.json({ goal })
   } catch (error) {
     console.error("Error updating goal:", error)
@@ -88,12 +102,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // 删除目标
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  console.log("DELETE method called for goal deletion")
+export async function DELETE(request: NextRequest, context: RouteParams) {
+  console.log("🚀 DELETE method called for goal deletion")
+  
   try {
     const userId = getCurrentUserId()
-    const { id: goalId } = await params
-    console.log(`Attempting to delete goal ${goalId} for user ${userId}`)
+    const { id: goalId } = await context.params
+    console.log(`🎯 Attempting to delete goal ${goalId} for user ${userId}`)
 
     // 先检查目标是否存在
     const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
@@ -101,17 +116,26 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const goal = Array.isArray(goals) ? goals[0] : goals
 
     if (!goal) {
-      console.log("Goal not found")
+      console.log("❌ Goal not found for deletion")
       return NextResponse.json({ error: "Goal not found" }, { status: 404 })
     }
 
+    console.log("🔍 Goal found, proceeding with deletion")
+
     // 删除目标
     await paramQuery`DELETE FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
-    console.log("Goal deleted successfully")
-
-    return NextResponse.json({ message: "Goal deleted successfully" })
+    
+    console.log("✅ Goal deleted successfully")
+    return NextResponse.json({ 
+      message: "Goal deleted successfully",
+      deletedGoalId: goalId 
+    })
+    
   } catch (error) {
-    console.error("Error deleting goal:", error)
-    return NextResponse.json({ error: "Failed to delete goal" }, { status: 500 })
+    console.error("💥 Error deleting goal:", error)
+    return NextResponse.json({ 
+      error: "Failed to delete goal",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 })
   }
 }
