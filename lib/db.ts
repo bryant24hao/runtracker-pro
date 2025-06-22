@@ -1,5 +1,33 @@
 import { neon } from "@neondatabase/serverless"
 
+// 检查是否有有效的数据库URL
+const hasValidDatabaseUrl = () => {
+  const url = process.env.DATABASE_URL
+  return url && (url.startsWith('postgresql://') || url.startsWith('postgres://'))
+}
+
+// 数据库初始化标志
+let isDatabaseInitialized = false
+let shouldUseMockDatabase = false
+
+// 初始化数据库连接策略
+const initializeDatabaseStrategy = () => {
+  if (isDatabaseInitialized) return
+  
+  if (hasValidDatabaseUrl()) {
+    console.log("🐘 Using PostgreSQL database")
+    shouldUseMockDatabase = false
+  } else {
+    console.log("🔧 No valid DATABASE_URL found, using mock database for production")
+    shouldUseMockDatabase = true
+  }
+  
+  isDatabaseInitialized = true
+}
+
+// 在文件加载时初始化策略
+initializeDatabaseStrategy()
+
 // 声明全局类型
 declare global {
   var mockData: {
@@ -301,23 +329,41 @@ function createMockDatabase() {
 }
 
 // 获取数据库实例（确保全局单例）
-export const getDB = async () => {
-  // 使用全局变量确保单例
-  if (typeof global !== 'undefined') {
-    if (!global.globalDbInstance) {
-      console.log("🔧 Creating new global mock database instance")
-      global.globalDbInstance = createMockDatabase()
+export const getDB = async (): Promise<any> => {
+  // 确保数据库策略已初始化
+  initializeDatabaseStrategy()
+  
+  if (shouldUseMockDatabase) {
+    // 使用Mock数据库
+    if (typeof global !== 'undefined') {
+      if (!global.globalDbInstance) {
+        console.log("🔧 Creating new global mock database instance")
+        global.globalDbInstance = createMockDatabase()
+      } else {
+        console.log("♻️ Reusing existing global database instance")
+      }
+      return global.globalDbInstance
     } else {
-      console.log("♻️ Reusing existing global database instance")
+      // 非服务器环境的fallback
+      if (!globalDbInstance) {
+        console.log("🔧 Creating new mock database instance (non-global)")
+        globalDbInstance = createMockDatabase()
+      }
+      return globalDbInstance
     }
-    return global.globalDbInstance
   } else {
-    // 非服务器环境的fallback
-    if (!globalDbInstance) {
-      console.log("🔧 Creating new mock database instance (non-global)")
-      globalDbInstance = createMockDatabase()
+    // 使用真实的PostgreSQL数据库
+    try {
+      if (!global.globalDbInstance) {
+        console.log("🐘 Creating PostgreSQL connection")
+        global.globalDbInstance = neon(process.env.DATABASE_URL!)
+      }
+      return global.globalDbInstance
+    } catch (error) {
+      console.error("❌ PostgreSQL connection failed, falling back to mock database:", error)
+      shouldUseMockDatabase = true
+      return await getDB() // 递归调用，使用mock数据库
     }
-    return globalDbInstance
   }
 }
 
