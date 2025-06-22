@@ -89,9 +89,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 // 删除目标
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log("DELETE method called for goal deletion")
   try {
     const userId = getCurrentUserId()
     const { id: goalId } = await params
+    console.log(`Attempting to delete goal ${goalId} for user ${userId}`)
 
     // 先检查目标是否存在
     const goals = await paramQuery`SELECT * FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
@@ -99,11 +101,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const goal = Array.isArray(goals) ? goals[0] : goals
 
     if (!goal) {
+      console.log("Goal not found")
       return NextResponse.json({ error: "Goal not found" }, { status: 404 })
     }
 
     // 删除目标
     await paramQuery`DELETE FROM goals WHERE id = ${goalId} AND user_id = ${userId}`
+    console.log("Goal deleted successfully")
 
     return NextResponse.json({ message: "Goal deleted successfully" })
   } catch (error) {
