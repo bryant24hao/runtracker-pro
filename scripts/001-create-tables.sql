@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS goals (
     target DECIMAL(10,2) NOT NULL,
     current_value DECIMAL(10,2) DEFAULT 0,
     unit VARCHAR(50) NOT NULL,
+    start_date DATE NOT NULL,
     deadline DATE NOT NULL,
     description TEXT,
     status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused')),
